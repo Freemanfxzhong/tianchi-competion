@@ -10,7 +10,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.Proxy;
 import java.net.URL;
@@ -41,31 +43,16 @@ public class ClientProcessData implements Runnable {
     @Override
     public void run() {
         try {
-            String dataFilePath = getFilePath();
-            LOGGER.info("local data file path:" + dataFilePath);
-            InputStream input = null;
-            if (dataFilePath != null){
-                File file=new File(dataFilePath);
-                try {
-                    input=new FileInputStream(file);
-                } catch (FileNotFoundException e) {
-                    LOGGER.error("File not found");
-                    return;
-                }
-
-            }else {
-                String path = getPath();
-                // process data on client, not server
-                if (StringUtils.isEmpty(path)) {
-                    LOGGER.warn("path is empty");
-                    return;
-                }
-                URL url = new URL(path);
-                LOGGER.info("data path:" + path);
-                HttpURLConnection httpConnection = (HttpURLConnection) url.openConnection(Proxy.NO_PROXY);
-                input = httpConnection.getInputStream();
+            String path = getPath();
+            // process data on client, not server
+            if (StringUtils.isEmpty(path)) {
+                LOGGER.warn("path is empty");
+                return;
             }
-
+            URL url = new URL(path);
+            LOGGER.info("data path:" + path);
+            HttpURLConnection httpConnection = (HttpURLConnection) url.openConnection(Proxy.NO_PROXY);
+            InputStream input = httpConnection.getInputStream();
             BufferedReader bf = new BufferedReader(new InputStreamReader(input));
             String line;
             long count = 0;
@@ -210,22 +197,6 @@ public class ClientProcessData implements Runnable {
         } else if ("8001".equals(port)){
             return "http://localhost:" + CommonController.getDataSourcePort() + "/trace2.data";
         } else {
-            return null;
-        }
-    }
-
-    private String getFilePath(){
-        String dataFilePath = System.getProperty("data.file.path");
-        if(dataFilePath != null) {
-            String port = System.getProperty("server.port", "8080");
-            if ("8000".equals(port)) {
-                return dataFilePath + "/trace1.data";
-            } else if ("8001".equals(port)) {
-                return dataFilePath + "/trace2.data";
-            } else {
-                return null;
-            }
-        }else{
             return null;
         }
     }
